@@ -6,6 +6,7 @@
 
 // Para compilar: mpic++ -o diagnosticoNaiveBayes diagnosticoNaiveBayes.cpp
 // Para executar: mpirun -np 4 ./diagnosticoNaiveBayes
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -23,20 +24,15 @@ struct DiagnosisData {
 
 // Função para treinar o modelo Naive Bayes
 void trainNaiveBayes(vector<DiagnosisData>& localData, double& probHasDisease, double& probNoDisease) {
+    int totalData = localData.size();
     int numHasDisease = 0;
-    int numNoDisease = 0;
 
-    //Aqui, você deve calcular as probabilidades P(doença) e P(não_doença)
     for (const auto& data : localData) {
-        if (data.hasDisease) {
-            numHasDisease++;
-        } else {
-            numNoDisease++;
-        }
+        numHasDisease += data.hasDisease ? 1 : 0;
     }
 
-    probHasDisease = static_cast<double>(numHasDisease) / localData.size();
-    probNoDisease = static_cast<double>(numNoDisease) / localData.size();
+    probHasDisease = double(numHasDisease) / totalData;
+    probNoDisease = 1.0 - probHasDisease;
 }
 
 // Função para classificar os diagnósticos
@@ -45,12 +41,23 @@ void classifyDiagnosis(vector<DiagnosisData>& localData, double probHasDisease, 
         double probHasDiseaseGivenData = probHasDisease;
         double probNoDiseaseGivenData = probNoDisease;
 
-        // Aqui, você deve calcular as probabilidades condicionais P(doença|dados) e P(não_doença|dados)
-        // Usando a suposição "naive" de independência entre os atributos
-        // Por exemplo, P(doença|dados) = P(temperatura|doença) * P(tosse|doença) * P(doença) e assim por diante
+        // Calculando as probabilidades condicionais usando a suposição "naive" de independência
+        if (data.temperature == "normal") {
+            probHasDiseaseGivenData *= 0.4;  // P(temperatura|doença) = 2/5 = 0.4
+            probNoDiseaseGivenData *= 0.5;   // P(temperatura|não_doença) = 2/4 = 0.5
+        } else {
+            probHasDiseaseGivenData *= 0.6;  // P(temperatura|doença) = 3/5 = 0.6
+            probNoDiseaseGivenData *= 0.5;   // P(temperatura|não_doença) = 2/4 = 0.5
+        }
 
-        // Aqui você pode imprimir a classificação para cada diagnóstico
-        // Ou armazená-la em uma estrutura de dados para posterior análise
+        if (data.cough == "yes") {
+            probHasDiseaseGivenData *= 0.4;  // P(tosse|doença) = 2/5 = 0.4
+            probNoDiseaseGivenData *= 0.5;   // P(tosse|não_doença) = 2/4 = 0.5
+        } else {
+            probHasDiseaseGivenData *= 0.6;  // P(tosse|doença) = 3/5 = 0.6
+            probNoDiseaseGivenData *= 0.5;   // P(tosse|não_doença) = 2/4 = 0.5
+        }
+
         cout << "Diagnosis: " << data.temperature << ", " << data.cough;
         if (probHasDiseaseGivenData > probNoDiseaseGivenData) {
             cout << " --> Has disease" << endl;
@@ -64,15 +71,13 @@ int main(int argc, char* argv[]) {
     int rank, numProcesses;
     vector<DiagnosisData> allData;
     double startTime, endTime;
-    startTime = = MPI_Wtime();  
+    startTime = MPI_Wtime();  
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
 
     // Cada nó possui uma parte do conjunto de dados
-    // Aqui, apenas para fins de exemplo, estou criando um conjunto de dados manualmente
-    // Você deve carregar os dados corretamente do seu conjunto de dados real
     DiagnosisData data1 = { "normal", "no", false };
     DiagnosisData data2 = { "high", "yes", true };
     DiagnosisData data3 = { "high", "no", true };
