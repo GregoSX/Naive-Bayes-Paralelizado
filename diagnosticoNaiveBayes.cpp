@@ -72,13 +72,15 @@ int main(int argc, char* argv[]) {
     int rank, numProcesses;
     vector<DiagnosisData> allData;
     double startTime, endTime;
-    startTime = MPI_Wtime();  
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
 
-    // Add the COVID-19 Symptoms dataset to allData
+    MPI_Barrier(MPI_COMM_WORLD);
+    startTime = MPI_Wtime();
+
+    // Adiciona o dataset de COVID-19 
     allData.insert(allData.end(), covid19SymptomsDataset.begin(), covid19SymptomsDataset.end());
 
     // Aqui, cada nó deve dividir o conjunto de dados em partes para processar em paralelo
@@ -101,6 +103,7 @@ int main(int argc, char* argv[]) {
     // Classificação dos diagnósticos localmente em cada nó
     classifyDiagnosis(localData, globalProbHasDisease / numProcesses, globalProbNoDisease / numProcesses);
 
+    MPI_Barrier(MPI_COMM_WORLD);
     endTime = MPI_Wtime();
 
     MPI_Finalize();
