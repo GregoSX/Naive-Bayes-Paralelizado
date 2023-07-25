@@ -12,15 +12,16 @@
 #include <string>
 #include <mpi.h>
 #include <thread>
+#include "datasets.h"
 
 using namespace std;
 
 // Estrutura de dados para armazenar os dados de diagnóstico
-struct DiagnosisData {
+/*struct DiagnosisData {
     string temperature;
     string cough;
     bool hasDisease;
-};
+};*/
 
 // Função para treinar o modelo Naive Bayes
 void trainNaiveBayes(vector<DiagnosisData>& localData, double& probHasDisease, double& probNoDisease) {
@@ -77,16 +78,8 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
 
-    // Cada nó possui uma parte do conjunto de dados
-    DiagnosisData data1 = { "normal", "no", false };
-    DiagnosisData data2 = { "high", "yes", true };
-    DiagnosisData data3 = { "high", "no", true };
-    DiagnosisData data4 = { "normal", "yes", false };
-
-    allData.push_back(data1);
-    allData.push_back(data2);
-    allData.push_back(data3);
-    allData.push_back(data4);
+    // Add the COVID-19 Symptoms dataset to allData
+    allData.insert(allData.end(), covid19SymptomsDataset.begin(), covid19SymptomsDataset.end());
 
     // Aqui, cada nó deve dividir o conjunto de dados em partes para processar em paralelo
     int dataSize = allData.size();
@@ -111,6 +104,8 @@ int main(int argc, char* argv[]) {
     endTime = MPI_Wtime();
 
     MPI_Finalize();
-    cout << "\nProcess's processing time: " << (endTime - startTime) << "s" << endl;
+    if(rank == 0){
+        cout << "\nProcess's processing time: " << (endTime - startTime) << "s" << endl;
+    }
     return 0;
 }
